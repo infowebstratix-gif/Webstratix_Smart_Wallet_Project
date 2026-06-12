@@ -105,12 +105,16 @@
         .list-group-item:hover {
             background: rgba(255, 255, 255, 0.05);
         }
-        .delete-btn {
+        .delete-btn, .edit-btn {
             cursor: pointer;
             color: #94a3b8;
             padding: 8px;
             border-radius: 8px;
             transition: all 0.2s;
+        }
+        .edit-btn:hover {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.15);
         }
         .delete-btn:hover {
             color: #f43f5e;
@@ -186,8 +190,8 @@
 
     <div class="row g-4">
         <div class="col-lg-5">
-            <div class="card p-4">
-                <h5 class="fw-bold mb-3 text-white"><i class="fa-solid fa-plus-circle text-success me-2"></i>Add New Record</h5>
+            <div class="card p-4" id="formCard">
+                <h5 class="fw-bold mb-3 text-white" id="formHeaderTitle"><i class="fa-solid fa-plus-circle text-success me-2"></i>Add New Record</h5>
                 <form id="expenseForm">
                     <div class="mb-3">
                         <label for="expenseDate" class="form-label small">Select Date</label>
@@ -204,9 +208,14 @@
                             <input type="number" id="expenseAmount" class="form-control" placeholder="0.00" required min="1">
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-premium w-100 py-2.5 mt-2">
-                        <i class="fa-solid fa-square-check me-2"></i>Save Record
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-premium flex-grow-1 py-2.5 mt-2" id="submitBtn">
+                            <i class="fa-solid fa-square-check me-2"></i>Save Record
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary py-2.5 mt-2 d-none" id="cancelEditBtn">
+                            Cancel
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -255,6 +264,9 @@
     // System Session Isolation Engine (Sandboxing local scopes per unique device)
     const sessionKey = 'expenses_isolated_node';
     let expenses = JSON.parse(localStorage.getItem(sessionKey)) || [];
+    
+    // Tracking active record ID for edit runtime state control
+    let editModeId = null;
 
     // DOM Elements
     const expenseForm = document.getElementById('expenseForm');
@@ -269,6 +281,10 @@
     const currentDateBadge = document.getElementById('currentDateBadge');
     const clearAllBtn = document.getElementById('clearAllBtn');
     const honeySticker = document.getElementById('honeySticker');
+    
+    const formHeaderTitle = document.getElementById('formHeaderTitle');
+    const submitBtn = document.getElementById('submitBtn');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
 
     // Initialize App With Auto Live Date Updating Engine
     document.addEventListener('DOMContentLoaded', () => {
@@ -290,17 +306,34 @@
     expenseForm.addEventListener('submit', (e) => {
         e.preventDefault(); 
 
-        const expense = {
-            id: Date.now(),
-            date: expenseDate.value,
-            purpose: expensePurpose.value.trim(),
-            amount: parseFloat(expenseAmount.value)
-        };
+        if (editModeId !== null) {
+            // Updating existing matching record inside array stack
+            expenses = expenses.map(exp => {
+                if (exp.id === editModeId) {
+                    return {
+                        ...exp,
+                        date: expenseDate.value,
+                        purpose: expensePurpose.value.trim(),
+                        amount: parseFloat(expenseAmount.value)
+                    };
+                }
+                return exp;
+            });
+            resetFormState();
+        } else {
+            // Appending fresh runtime payload object
+            const expense = {
+                id: Date.now(),
+                date: expenseDate.value,
+                purpose: expensePurpose.value.trim(),
+                amount: parseFloat(expenseAmount.value)
+            };
+            expenses.unshift(expense); 
+        }
 
-        expenses.unshift(expense); 
         saveAndUpdate();
         
-        // Reset inputs
+        // Reset inputs safely
         expensePurpose.value = '';
         expenseAmount.value = '';
 
@@ -316,8 +349,46 @@
         }, 4000); 
     }
 
+    // Edit individual expense row engine
+    function startEditExpense(id) {
+        const target = expenses.find(exp => exp.id === id);
+        if (!target) return;
+
+        editModeId = id;
+        expenseDate.value = target.date;
+        expensePurpose.value = target.purpose;
+        expenseAmount.value = target.amount;
+
+        // Visual UI Transformation to highlight entry update processes
+        formHeaderTitle.innerHTML = `<i class="fa-solid fa-pen-to-square text-info me-2"></i>Update History Record`;
+        submitBtn.innerHTML = `<i class="fa-solid fa-rotate me-2"></i>Update Record`;
+        cancelEditBtn.classList.remove('d-none');
+
+        // Autofocus viewport positioning scrolling to dynamic inputs form block
+        document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Resetting form structural layout to base settings mode
+    function resetFormState() {
+        editModeId = null;
+        formHeaderTitle.innerHTML = `<i class="fa-solid fa-plus-circle text-success me-2"></i>Add New Record`;
+        submitBtn.innerHTML = `<i class="fa-solid fa-square-check me-2"></i>Save Record`;
+        cancelEditBtn.classList.add('d-none');
+        
+        // Re-inject current system standard safe calendar value mapping
+        const today = new Date();
+        expenseDate.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        expensePurpose.value = '';
+        expenseAmount.value = '';
+    }
+
+    cancelEditBtn.addEventListener('click', resetFormState);
+
     // Delete Individual Expense
     function deleteExpense(id) {
+        if (editModeId === id) {
+            resetFormState();
+        }
         expenses = expenses.filter(exp => exp.id !== id);
         saveAndUpdate();
     }
@@ -337,6 +408,9 @@
         if(confirm(`Are you absolute sure you want to clear all history records for ${selectedMonthString}?`)) {
             // Keep everything EXCEPT the chosen filter month
             expenses = expenses.filter(exp => exp.date.substring(0, 7) !== selectedMonthString);
+            if (editModeId && targetRecords.some(exp => exp.id === editModeId)) {
+                resetFormState();
+            }
             saveAndUpdate();
         }
     });
@@ -393,7 +467,8 @@
                         <small class="text-info fw-medium"><i class="fa-regular fa-calendar-days me-1.5"></i>${formattedDate}</small>
                     </div>
                     <div class="d-flex align-items-center">
-                        <span class="badge badge-amount me-2">৳ ${exp.amount.toLocaleString('en-IN')}</span>
+                        <span class="badge badge-amount me-3">৳ ${exp.amount.toLocaleString('en-IN')}</span>
+                        <i class="fa-solid fa-pen-to-square edit-btn me-1" onclick="startEditExpense(${exp.id})" title="Edit"></i>
                         <i class="fa-solid fa-trash-can delete-btn" onclick="deleteExpense(${exp.id})" title="Delete"></i>
                     </div>
                 </div>
