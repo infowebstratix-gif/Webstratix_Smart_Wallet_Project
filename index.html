@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💸Smart Wallet💸</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark-main: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --card-glass: rgba(30, 41, 59, 0.85);
+            --border-neon: rgba(56, 189, 248, 0.25);
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+        }
+        body {
+            background: var(--bg-dark-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            color: var(--text-main);
+        }
+        .card {
+            border: 1px solid var(--border-neon);
+            border-radius: 20px;
+            background: var(--card-glass);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            border-color: rgba(56, 189, 248, 0.5);
+        }
+        .balance-card {
+            background: linear-gradient(135deg, #1e1b4b 0%, #311042 100%);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        /* Floating Animation for BDT Icon */
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .animated-taka {
+            animation: float 4s ease-in-out infinite;
+            background: rgba(168, 85, 247, 0.3);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+        }
+        .form-label {
+            color: #e2e8f0 !important;
+            font-weight: 600;
+        }
+        .form-control {
+            background: #0f172a !important;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff !important;
+            border-radius: 12px;
+            padding: 12px 16px;
+            transition: all 0.2s;
+        }
+        .form-control:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
+        }
+        .form-control::placeholder {
+            color: #94a3b8;
+        }
+        .btn-premium {
+            background: linear-gradient(135deg, #38bdf8 0%, #0369a1 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            padding: 12px;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+            transition: all 0.2s;
+        }
+        .btn-premium:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.6);
+            color: white;
+        }
+        .expense-list {
+            max-height: 480px;
+            overflow-y: auto;
+        }
+        .expense-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .expense-list::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 10px;
+        }
+        .list-group-item {
+            background: transparent;
+            padding: 18px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        .list-group-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .delete-btn {
+            cursor: pointer;
+            color: #94a3b8;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .delete-btn:hover {
+            color: #f43f5e;
+            background: rgba(244, 63, 94, 0.15);
+        }
+        .badge-amount {
+            font-size: 1rem;
+            padding: 8px 14px;
+            font-weight: 700;
+            border-radius: 10px;
+            background-color: rgba(244, 63, 94, 0.2) !important;
+            color: #f43f5e !important;
+            border: 1px solid rgba(244, 63, 94, 0.3);
+        }
+        /* Custom Honey Sticker Popup styling */
+        .honey-sticker {
+            position: fixed;
+            bottom: -100px;
+            right: 24px;
+            background: linear-gradient(135deg, #d97706 0%, #78350f 100%);
+            border: 1px solid #fbbf24;
+            box-shadow: 0 10px 30px rgba(251, 191, 36, 0.4);
+            border-radius: 16px;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            z-index: 1050;
+            transition: bottom 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        .honey-sticker.show {
+            bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h2 class="fw-bold m-0 text-white"><i class="fa-solid fa-wallet text-info me-2"></i>Smart Wallet</h2>
+            <p class="text-info opacity-75 m-0 mt-1 small">Track your daily expenditures effortlessly</p>
+        </div>
+        <span class="badge bg-dark text-info border border-info px-3 py-2 rounded-pill shadow-sm fs-7 fw-bold" id="currentDateBadge"></span>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card balance-card p-4 h-100 d-flex flex-row justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-white opacity-75 text-uppercase tracking-wider small fw-bold mb-1">Current Month Expenses</h6>
+                    <h2 class="fw-bold text-white mb-0">৳ <span id="monthlyTotal">0</span></h2>
+                </div>
+                <div class="p-3 rounded-circle animated-taka">
+                    <i class="fa-solid fa-bangladeshi-taka-sign fa-2x text-white"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-4 h-100 justify-content-center">
+                <div class="row align-items-center">
+                    <div class="col-6">
+                        <label for="monthFilter" class="form-label small fw-bold text-info text-uppercase mb-1">Filter Statement</label>
+                        <input type="month" id="monthFilter" class="form-control">
+                    </div>
+                    <div class="col-6 text-end">
+                        <h6 class="small fw-bold text-white opacity-75 text-uppercase mb-1">Filtered Total:</h6>
+                        <h3 class="fw-bold text-danger mb-0">৳ <span id="filteredTotal">0</span></h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card p-4">
+                <h5 class="fw-bold mb-3 text-white"><i class="fa-solid fa-plus-circle text-success me-2"></i>Add New Record</h5>
+                <form id="expenseForm">
+                    <div class="mb-3">
+                        <label for="expenseDate" class="form-label small">Select Date</label>
+                        <input type="date" id="expenseDate" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expensePurpose" class="form-label small">Purpose / Description</label>
+                        <input type="text" id="expensePurpose" class="form-control" placeholder="e.g., Grocery, Rent, Utilities" required autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label for="expenseAmount" class="form-label small">Amount (BDT)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary text-info fw-bold">৳</span>
+                            <input type="number" id="expenseAmount" class="form-control" placeholder="0.00" required min="1">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-premium w-100 py-2.5 mt-2">
+                        <i class="fa-solid fa-square-check me-2"></i>Save Record
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-receipt text-info me-2"></i>History Log</h5>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger px-3 rounded-pill fw-bold" id="clearAllBtn">
+                        <i class="fa-solid fa-trash-can me-1"></i>Clear Selected Month
+                    </button>
+                </div>
+                
+                <div class="expense-list pe-1" id="expenseListContainer">
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="emptyStateTemplate" class="d-none">
+    <div class="text-center text-muted py-5 my-4">
+        <div class="bg-secondary bg-opacity-10 d-inline-block p-4 rounded-circle mb-3">
+            <i class="fa-solid fa-folder-open fa-2x text-info"></i>
+        </div>
+        <p class="fw-medium mb-0 text-white">No records found for this period</p>
+        <small class="text-muted">Fill out the form to append data logs</small>
+    </div>
+</div>
+
+<div id="honeySticker" class="honey-sticker">
+    <i class="fa-solid fa-jar-honey text-warning fa-2x me-3 animate-bounce"></i>
+    <div>
+        <div class="fw-bold text-warning">Your Money is your Honey!</div>
+        <small class="text-white fw-medium">Keep track of them safely.</small>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<div><footer class="text-center text-white py-3 mt-4 border-top border-secondary">
+    <h6><b>Powered by Dev.Ankur</b></h6>
+</footer></div>
+<script>
+    // System Session Isolation Engine (Sandboxing local scopes per unique device)
+    const sessionKey = 'expenses_isolated_node';
+    let expenses = JSON.parse(localStorage.getItem(sessionKey)) || [];
+
+    // DOM Elements
+    const expenseForm = document.getElementById('expenseForm');
+    const expenseDate = document.getElementById('expenseDate');
+    const expensePurpose = document.getElementById('expensePurpose');
+    const expenseAmount = document.getElementById('expenseAmount');
+    const expenseListContainer = document.getElementById('expenseListContainer');
+    const emptyStateTemplate = document.getElementById('emptyStateTemplate');
+    const monthlyTotal = document.getElementById('monthlyTotal');
+    const monthFilter = document.getElementById('monthFilter');
+    const filteredTotal = document.getElementById('filteredTotal');
+    const currentDateBadge = document.getElementById('currentDateBadge');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const honeySticker = document.getElementById('honeySticker');
+
+    // Initialize App With Auto Live Date Updating Engine
+    document.addEventListener('DOMContentLoaded', () => {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        
+        expenseDate.value = `${yyyy}-${mm}-${dd}`;
+        monthFilter.value = `${yyyy}-${mm}`;
+        
+        // Auto Live update date visualization rendering
+        currentDateBadge.innerText = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        renderExpenses();
+    });
+
+    // Handle Form Submit Securely without Reload/Flicker
+    expenseForm.addEventListener('submit', (e) => {
+        e.preventDefault(); 
+
+        const expense = {
+            id: Date.now(),
+            date: expenseDate.value,
+            purpose: expensePurpose.value.trim(),
+            amount: parseFloat(expenseAmount.value)
+        };
+
+        expenses.unshift(expense); 
+        saveAndUpdate();
+        
+        // Reset inputs
+        expensePurpose.value = '';
+        expenseAmount.value = '';
+
+        // Trigger dynamic Honey Sticker popup alert notification
+        triggerHoneySticker();
+    });
+
+    // Sticker Popup trigger Engine logic
+    function triggerHoneySticker() {
+        honeySticker.classList.add('show');
+        setTimeout(() => {
+            honeySticker.classList.remove('show');
+        }, 4000); 
+    }
+
+    // Delete Individual Expense
+    function deleteExpense(id) {
+        expenses = expenses.filter(exp => exp.id !== id);
+        saveAndUpdate();
+    }
+
+    // Clear Selected Month's Records Only
+    clearAllBtn.addEventListener('click', () => {
+        const selectedMonthString = monthFilter.value; // e.g., "2026-06"
+        
+        // Check if there's any data to delete for the selected month
+        const targetRecords = expenses.filter(exp => exp.date.substring(0, 7) === selectedMonthString);
+        
+        if (targetRecords.length === 0) {
+            alert('No records found to clear for this selected month.');
+            return;
+        }
+
+        if(confirm(`Are you absolute sure you want to clear all history records for ${selectedMonthString}?`)) {
+            // Keep everything EXCEPT the chosen filter month
+            expenses = expenses.filter(exp => exp.date.substring(0, 7) !== selectedMonthString);
+            saveAndUpdate();
+        }
+    });
+
+    // Filter Trigger Event Listener
+    monthFilter.addEventListener('input', renderExpenses);
+
+    // Sync LocalStorage & Re-render
+    function saveAndUpdate() {
+        localStorage.setItem(sessionKey, JSON.stringify(expenses));
+        renderExpenses();
+    }
+
+    // Main Render UI Function with structural filters applied
+    function renderExpenses() {
+        const today = new Date();
+        const thisMonthString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+        const selectedMonthString = monthFilter.value;
+
+        let currentMonthSum = 0;
+        let filteredMonthSum = 0;
+
+        // Loop to filter states
+        expenses.forEach(exp => {
+            const expMonth = exp.date.substring(0, 7); 
+            if (expMonth === thisMonthString) {
+                currentMonthSum += exp.amount;
+            }
+            if (expMonth === selectedMonthString) {
+                filteredMonthSum += exp.amount;
+            }
+        });
+
+        monthlyTotal.innerText = currentMonthSum.toLocaleString('en-IN');
+        filteredTotal.innerText = filteredMonthSum.toLocaleString('en-IN');
+
+        // Filter out array contents dynamically to render ONLY selected month records
+        const filteredExpensesList = expenses.filter(exp => exp.date.substring(0, 7) === selectedMonthString);
+
+        if (filteredExpensesList.length === 0) {
+            expenseListContainer.innerHTML = emptyStateTemplate.innerHTML;
+            return;
+        }
+
+        let listHtml = '<div class="list-group list-group-flush">';
+        filteredExpensesList.forEach(exp => {
+            const dateObj = new Date(exp.date);
+            const formattedDate = dateObj.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+
+            listHtml += `
+                <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                    <div>
+                        <h6 class="mb-1 fw-bold text-white">${exp.purpose}</h6>
+                        <small class="text-info fw-medium"><i class="fa-regular fa-calendar-days me-1.5"></i>${formattedDate}</small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge badge-amount me-2">৳ ${exp.amount.toLocaleString('en-IN')}</span>
+                        <i class="fa-solid fa-trash-can delete-btn" onclick="deleteExpense(${exp.id})" title="Delete"></i>
+                    </div>
+                </div>
+            `;
+        });
+        listHtml += '</div>';
+        expenseListContainer.innerHTML = listHtml;
+    }
+</script>
+</body>
+</html>
